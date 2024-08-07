@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import useFetch from 'src/Utils/fetch'
+import React, { useState } from 'react'
+import useFetch from 'src/Utils/customFetchHook'
+import callFetch from 'src/Utils/callFetch';
 
 interface Film {
   uid: string;
@@ -12,16 +13,6 @@ interface FilmsResponse {
   result: Film[];
 }
 
-interface FilmDetail {
-  result: {
-    properties: {
-      title: string;
-      description: string;
-      opening_crawl: string;
-    };
-  };
-}
-
 const Home = () => {
   const baseURL = 'https://www.swapi.tech/api/';
   const endpoints = {
@@ -32,31 +23,23 @@ const Home = () => {
     starship: 'starships',
     vehicle: 'vehicles',
   };
-  const [selectedFilmId, setSelectedFilmId] = useState<string | null>(null);
-  const [filmOptions, setFilmOptions] = useState<{ id: string, title: string }[]>([]);
-
+  const [selectedCrawl, setSelectedCrawl] = useState<any>(null);
+  const [crawlLoading, setCrawLoading] = useState(false);
+  const [crawlError, setCrawlError] = useState<any>(null);
   const { isLoading: filmsLoading, serverError: filmsError, apiData: filmsData } = useFetch<FilmsResponse>(`${baseURL}${endpoints.film}`);
-  const { isLoading: filmLoading, serverError: filmError, apiData: filmData } = useFetch<FilmDetail>(selectedFilmId ? `${baseURL}${endpoints.film}/${selectedFilmId}` : '');
 
-  console.log('filmsLoading', filmsLoading);
-  console.log('filmsError', filmsError);
-  console.log('filmsData', filmsData);
-  useEffect(() => {
-    if (filmsData && filmsData.result) {
-      const options = filmsData.result.map((film: Film) => ({
-        id: film.uid,
-        title: film.properties.title,
-      }));
-      setFilmOptions(options);
-    }
-  }, [filmsData]);
-
-  console.log('filmoptions', filmOptions)
- const handleSelectedFilm = (id: string) => {
-  setSelectedFilmId(id)
+ const handleSelectedFilm = async (id: string) => {
+  setSelectedCrawl(null)
+  const result = await callFetch(`${baseURL}${endpoints.film}/${id}`);
+  if(result.hasOwnProperty('ERROR')) {
+    setCrawlError(result.ERROR)
+  } else {
+    setSelectedCrawl(result.DATA)
+    setCrawLoading(false);
+  }
  };
 
- console.log('filmData', filmData);
+ console.log('render')
 
   return (
     <main>
@@ -70,7 +53,10 @@ const Home = () => {
           {filmsData.result.map((film) => (
             <li
               key={film.uid}
-              onClick={() => handleSelectedFilm(film.uid)}
+              onClick={() => {
+                setCrawLoading(true);
+                handleSelectedFilm(film.uid);
+              }}
             >
               {film.properties.title}
             </li>
@@ -78,9 +64,13 @@ const Home = () => {
         </ul>
       )}
       <h2>Film Crawl</h2>
-      <p>
-        {filmData?.result.properties.opening_crawl}
-      </p>
+      {crawlLoading && <p>Loading....</p>}
+      {crawlError && <p>Error loading crawl</p>}
+      {selectedCrawl && 
+          <p>
+            {selectedCrawl.result.properties.opening_crawl}
+          </p>
+      }
     </main>
   )
 }
