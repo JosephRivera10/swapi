@@ -1,9 +1,10 @@
 import React from 'react';
+import Home from './Containers/Home';
 
 const App = () => (
-  <div>
-    <h1>Hello, Worlds!</h1>
-  </div>
+  <main>
+    <Home />
+  </main>
 );
 
 export default App;
